@@ -1,0 +1,25 @@
+Hjemmeside der beregner hvordan charge timer skal indstilles ud fra flere parametre
+
+Input:
+- Charger Type (Mormor(3kW), AC-charger(6kW), Hurtiglader(50kW), evt Hurtiglader(+70kW))
+- Current time (Hvad er klokken nu - kan udfyldes automatisk)
+- Current Battery %
+- Target Battery %
+- (evt) Projected end time # Det tidspunkt hvor bilen anslår at opladningen er slut
+
+Output:
+- Charge Timer end time (fx opladning fra nu til 22:45)
+    > Skal afrundes til nærmeste 10 min
+      Evt, hvor man præsenteres for % hvis man runder 10 min op eller ned:
+      fx target er 80%, vælg mellem end_time_1 = 02:20 ved 76% eller end_time_2 = 02:30 ved 81% 
+- Beregning af, hvor mange kWh der skal lades op, og evt. et estimat af ladetab
+- Anslag af hvad prisen kommer til at blive, ud fra ovenstående og prisgrafen. Evt. med en knap så det kan slås til/fra
+
+PoC: end_time beregnes ud fra en lineær kurve (f(x) = ax+b)
+    hvor:   a = charge rate som tilsvarer den valgte oplader-Type
+            b = nuværende batteri %
+            x = tid
+            y = batteri %
+
+Release: Indsaml data omkring opladningskurve og beregn den reelle tid til en given %. Test dette op imod ladedata
+    > Kan gøres nemmere ved brug af fx LeafSpy
