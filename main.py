@@ -13,6 +13,8 @@ app = Flask(__name__)
 time = backend.Tid(timezone_offset=tz_offset)
 ladepris = backend.Ladepris(tids_objekt=time)
 
+backend.delete_old_pngs()
+
 @app.route('/')
 def index():
     ladepris.check_data_expired(debug=debug)

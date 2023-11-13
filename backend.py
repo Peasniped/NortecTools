@@ -3,6 +3,15 @@ import requests, os
 import matplotlib.pyplot as plt
 import numpy as np
 
+def delete_old_pngs() -> None:
+    try:
+        files = os.listdir("static")
+        for file in files:
+            os.remove(f"static//{file}")
+    except Exception as e:
+        print(e)
+        pass
+
 class Tid:
     
     def __init__(self, timezone_offset:int = 0) -> None:
@@ -228,4 +237,5 @@ class Ladepris:
         else: raise Exception(f"Something is wrong with the length of the pricedata. Length is {len(self.pricedata)}. Valid lengths are 1 and 2")
 
 if __name__ == "__main__":
-    Ladepris().check_data_expired(debug=True)
+    #Ladepris().check_data_expired(debug=True)
+    delete_old_pngs()
