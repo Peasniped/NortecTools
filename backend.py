@@ -12,6 +12,8 @@ class Tid:
     def get_time(self, output:bool = True) -> None|dict:
         """ Gets the current time of the device running the code, returns today(today's date), hour(current hour) and hour_next(current hour + 1) """
         now                = datetime.now() + timedelta(hours=self.timezone_offset)
+        clock              = now.strftime("%Y-%m-%d %H:%M")
+        clock_time         = now.strftime("%H:%M")
         self.hour          = now.strftime("%H:00")
         self.hour_short    = int(str(self.hour[0:2]))
         self.hour_next     = (now + timedelta(hours=1)).strftime("%H:00")
@@ -20,7 +22,8 @@ class Tid:
         self.month         = self.date.month
 
         if output: return  {"now": now,
-                            "hour": self.hour,
+                            "clock": clock,
+                            "clock_time": clock_time,
                             "hour_short": self.hour_short,
                             "hour_next": self.hour_next,
                             "date": self.date,
@@ -91,9 +94,11 @@ class Ladepris:
         self.pricedata_date = None
         self.img_filename = None
 
-
     def check_data_expired(self, debug:bool = False) -> None:
-        now = self.tid.get_time()["now"]
+        time_dict  = self.tid.get_time() 
+        now        = time_dict["now"]
+        hour_short = time_dict["hour_short"]
+        clock      = time_dict["clock"]
 
         def try_remove_old_img() -> None:
             try:
@@ -104,12 +109,13 @@ class Ladepris:
         # Check if existing data is expired
         if self.pricedata_expiry == None or self.pricedata_expiry < now or self.pricedata == None or self.img_filename == None:
             self.pricedata = self.fetch_pricedata()
-            self.pricedata_date = now
+            self.pricedata_date = clock
             if not self.img_filename == None: try_remove_old_img()
             self.plot_graph()
 
             tomorrow = now.date() + timedelta(days=1)
-            self.pricedata_expiry = datetime(tomorrow.year, tomorrow.month, tomorrow.day, 13)
+            if hour_short >= 13: self.pricedata_expiry = datetime(tomorrow.year, tomorrow.month, tomorrow.day, 13)
+            else:                self.pricedata_expiry = datetime(now.year, now.month, now.day, 13)
             self.hour_marker_expiry = datetime(now.year, now.month, now.day, now.hour + 1)
             if debug: print("New data fetched, new graph plotted")
 
@@ -172,9 +178,11 @@ class Ladepris:
             if tomorrow: y_vals = [x for x in prices_today + prices_tomorrow if x > 0]
             else:        y_vals = [x for x in prices_today if x > 0]
             y_min = min(y_vals) * 0.95
+            y_max = max(y_vals) * 1.043
             
-            date         = self.tid.get_time()["date"]
-            current_hour = self.tid.get_time()["hour_short"]
+            date       = self.tid.get_time()["date"]
+            time       = self.tid.get_time()["clock_time"]
+            hour_short = self.tid.get_time()["hour_short"]
 
             bar_width = 0.425
             hours = np.arange(len(hours))
@@ -185,17 +193,23 @@ class Ladepris:
                 plt.bar(hours + bar_width/2, prices_tomorrow, bar_width, label="Ladepris i morgen")
             else: 
                 plt.bar(hours - bar_width/2, prices_today, bar_width, label="Ladepris i dag")
-            plt.ylim(ymin=y_min)
+            plt.ylim(bottom=y_min, top=y_max)
             plt.xlabel("Time hvori opladning påbegyndes")
             plt.xticks(hours)
             plt.ylabel("kr./kWh for hele ladningen")
-            plt.title(f"Nortec ladepris - Genereret {date}T{current_hour}")
-            plt.axvline(x=current_hour, color='red', linestyle='-', label='Nuværende Time')
+            plt.title(f"Nortec ladepris")
+            plt.axvline(x=hour_short, color='red', linestyle='-', label='Nuværende Time')
             plt.legend()
-            plt.text(0.05, 0.95, f"Plot generated on {date} at T{current_hour}", ha='left', va='top', fontsize=10, bbox=dict(facecolor='black', alpha=0.5))
+            plt.text(-1.2, y_max * 0.994, f"Data hentet: {self.pricedata_date}\nData plottet: {date} {time}", ha='left', va='top', fontsize=10, bbox=dict(facecolor='white', edgecolor="lightgrey", alpha=1))
+            index_min_today = prices_today.index(min(prices_today))
+            if tomorrow:
+                prices_tomorrow = [x for x in prices_tomorrow if x > 0]
+                index_min_tomorrow = prices_tomorrow.index(min(prices_tomorrow))
+                plt.text(6.8, y_max * 0.994, f"Billigst i dag:       {prices_today[index_min_today]} kr./kWh @ {index_min_today}:00\nBilligst i morgen: {prices_tomorrow[index_min_tomorrow]} kr./kWh @ {index_min_tomorrow}:00", ha='left', va='top', fontsize=10, bbox=dict(facecolor='white', edgecolor="lightgrey", alpha=1))
+            else:
+                plt.text(6.8, y_max * 0.994, f"Billigst i dag: {prices_today[index_min_today]} kr./kWh @ {index_min_today}:00", ha='left', va='top', fontsize=10, bbox=dict(facecolor='white', edgecolor="lightgrey", alpha=1))
 
-
-            self.img_filename = f"{date}-T{current_hour}.png"
+            self.img_filename = f"{date}-T{hour_short}.png"
             plt.savefig(f"static//{self.img_filename}")        
 
         if len(self.pricedata) == 1:
