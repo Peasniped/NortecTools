@@ -8,12 +8,22 @@ except:
     tz_offset = 0
     debug     = False
 
+debug = True
+
 app = Flask(__name__)
 
 time = backend.Tid(timezone_offset=tz_offset)
 ladepris = backend.Ladepris(tids_objekt=time)
 
 backend.delete_old_pngs()
+print(f"DEBUG: LeafTools debug messages are {'active' if debug else 'deactivated'}!")
+
+@app.after_request
+def after_request(response):
+    seconds_to_next_hour = time.get_time()["s_to_next_hr"]
+    response.headers["Cache-Control"] = f"max-age={seconds_to_next_hour}"
+    if debug: print("Seconds to next hour:", seconds_to_next_hour)
+    return response
 
 @app.route('/')
 def index():
