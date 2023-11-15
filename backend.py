@@ -133,7 +133,7 @@ class Ladepris:
         # Check if existing hour-marker is expired
         elif self.hour_marker_expiry == None or self.hour_marker_expiry <= now:
             # Check if it is time to discard the "today"-data from yesterday
-            if date_data is not None and date_today > date_data and len(self.pricedata) == 48:
+            if date_data is not None and date_today > date_data and len(self.pricedata) == 2:
                 self.pricedata = self.pricedata[1:]
                 if debug: print(f"DEBUG: {self.tid.get_time()['now']} ::", f"'today'-data from yesterday discarded. Pricedata now has length {len(self.pricedata)}")
 

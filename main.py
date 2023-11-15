@@ -6,9 +6,7 @@ try:
     debug     = bool(os.environ['DEBUG_MSG'])
 except:
     tz_offset = 0
-    debug     = False
-
-debug = True
+    debug     = True
 
 app = Flask(__name__)
 
