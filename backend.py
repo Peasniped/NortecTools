@@ -9,7 +9,7 @@ def delete_old_pngs() -> None:
         for file in files:
             os.remove(f"static//{file}")
     except Exception as e:
-        print(e)
+        print("Exception using delete_old_pngs():", e)
         pass
 
 class Tid:
@@ -111,24 +111,18 @@ class Ladepris:
         date_today = datetime(now.year, now.month, now.day)
         date_data = datetime(self.pricedata_date.year, self.pricedata_date.month, self.pricedata_date.day) if self.pricedata_date is not None else None
 
-        def try_remove_old_img() -> None:
-            try:
-                os.remove(self.img_filename)
-            except:
-                pass
-
         # Check if existing data is expired
         if self.pricedata_expiry == None or self.pricedata_expiry < now or self.pricedata == None or self.img_filename == None:
             self.pricedata = self.fetch_pricedata()
             self.pricedata_date = now
-            if not self.img_filename == None: try_remove_old_img()
+            delete_old_pngs()
             self.plot_graph()
 
             tomorrow = now.date() + timedelta(days=1)
             if hour_short >= 13: self.pricedata_expiry = datetime(tomorrow.year, tomorrow.month, tomorrow.day, 13)
             else:                self.pricedata_expiry = datetime(now.year, now.month, now.day, 13)
             self.hour_marker_expiry = datetime(now.year, now.month, now.day, now.hour + 1)
-            if debug: print(f"DEBUG: {self.tid.get_time()['now']} ::", ": New data fetched, new graph plotted")
+            if debug: print(f"DEBUG: {self.tid.get_time()['now']} ::", "New data fetched, new graph plotted")
 
         # Check if existing hour-marker is expired
         elif self.hour_marker_expiry == None or self.hour_marker_expiry <= now:
@@ -137,16 +131,15 @@ class Ladepris:
                 self.pricedata = self.pricedata[1:]
                 if debug: print(f"DEBUG: {self.tid.get_time()['now']} ::", f"'today'-data from yesterday discarded. Pricedata now has length {len(self.pricedata)}")
 
-            if not self.img_filename == None: try_remove_old_img()
+            delete_old_pngs()
             self.plot_graph()
 
             self.hour_marker_expiry = datetime(now.year, now.month, now.day, now.hour + 1)
             if debug: print(f"DEBUG: {self.tid.get_time()['now']} ::", "Data not expired, new graph plotted")
         
-        else:
-            if debug: 
-                print(f"DEBUG: {self.tid.get_time()['now']} ::", ": No data expired")
-                print("     >> Data expiry:", self.pricedata_expiry, "-- Hour expiry:", self.hour_marker_expiry)
+        elif debug:
+            print(f"DEBUG: {self.tid.get_time()['now']} ::", ": No data expired")
+            print("     >> Data expiry:", self.pricedata_expiry, "-- Hour expiry:", self.hour_marker_expiry)
 
     def fetch_pricedata(self) -> tuple:
         data = Elpris(tids_objekt=self.tid).get_pricedata()
@@ -181,88 +174,96 @@ class Ladepris:
         data_today = format_price_list(data_today)
         if not data_tomorrow == [None]:
             data_tomorrow = format_price_list(data_tomorrow)
-
             return (data_today, data_tomorrow)
         else: return (data_today,)
 
     def plot_graph(self) -> None:
-        try:
-            def plot(charge_prices_today, charge_prices_tomorrow) -> None:
-                if not len(charge_prices_today) == 24:
-                    raise ValueError(f"The length of the charge_prices in variable \"charge_prices_today\" is {len(charge_prices_today)}, valid length is 24.")
-                elif charge_prices_tomorrow is not None and not len(charge_prices_tomorrow) == 24:
-                    raise ValueError(f"The length of the charge_prices in variable \"charge_prices_tomorrow\" is {len(charge_prices_tomorrow)}, valid length is 24.")
+        def extend_list_with_zeroes(list:list, prepend:bool, target_length:int = 24) -> list:
+            item_delta = target_length - len(list)
+            for i in range(item_delta):
+                if prepend: list = [0] + list
+                else:       list.append(0)
+            return list
 
-                tomorrow = False if charge_prices_tomorrow == None else True
-                hours = [x[0] for x in charge_prices_today]
-                prices_today = [x[1] for x in charge_prices_today]
-                if tomorrow: prices_tomorrow = [x[1] for x in charge_prices_tomorrow]
-                
-                if tomorrow: y_vals = [x for x in prices_today + prices_tomorrow if x > 0]
-                else:        y_vals = [x for x in prices_today if x > 0]
-                y_min = min(y_vals) * 0.95
-                y_max = max(y_vals) * 1.043
-                box_height = y_max * 0.995
-                
-                date           = self.tid.get_time()["date"]
-                time           = self.tid.get_time()["clock_time"]
-                hour_short     = self.tid.get_time()["hour_short"]
-                pricedata_date = self.pricedata_date.strftime("%Y-%m-%d %H:%M")
+        def plot(charge_prices_today, charge_prices_tomorrow) -> None:
+            if not len(charge_prices_today) == 24:
+                raise ValueError(f"The length of the charge_prices in variable \"charge_prices_today\" is {len(charge_prices_today)}, valid length is 24.")
+            elif charge_prices_tomorrow is not None and not len(charge_prices_tomorrow) == 24:
+                raise ValueError(f"The length of the charge_prices in variable \"charge_prices_tomorrow\" is {len(charge_prices_tomorrow)}, valid length is 24.")
 
-                bar_width = 0.425
-                hours = np.arange(len(hours))
-                
-                plt.figure(figsize=(10,8))
-                if tomorrow:
-                    bar_offset = -bar_width/2
-                    plt.bar(hours - bar_width/2, prices_today, bar_width, label="Ladepris i dag")
-                    plt.bar(hours + bar_width/2, prices_tomorrow, bar_width, label="Ladepris i morgen")
-                else: 
-                    bar_offset = 0
-                    plt.bar(hours, prices_today, bar_width, label="Ladepris i dag")
-                plt.ylim(bottom=y_min, top=y_max)
-                plt.xlabel("Time hvori opladning påbegyndes")
-                plt.xticks(hours)
-                plt.ylabel("kr./kWh for hele ladningen")
-                plt.title(f"Nortec ladepris")
-                plt.axvline(x=hour_short, color="red", linestyle="-", label="Nuværende Time")
-                plt.legend(loc = "upper right")
-                plt.text(-1.0 + bar_offset, box_height, f"Data hentet: {pricedata_date}\nData plottet: {date} {time}", ha="left", va="top", fontsize=10, bbox=dict(boxstyle = "round", facecolor="white", edgecolor="lightgrey", alpha=1))
-                
-                # Find the lowest price of the day and render in textbox
-                prices_today = [x for x in prices_today if x > 0]
-                index_min_today = prices_today.index(min(prices_today))
-                if tomorrow:
-                    prices_tomorrow = [x for x in prices_tomorrow if x > 0]
-                    index_min_tomorrow = prices_tomorrow.index(min(prices_tomorrow))
-                    plt.text(6.9 + bar_offset, box_height, f"Billigst i dag:       {prices_today[index_min_today]} kr./kWh @ {index_min_today}:00\nBilligst i morgen: {prices_tomorrow[index_min_tomorrow]} kr./kWh @ {index_min_tomorrow}:00", ha="left", va="top", fontsize=10, bbox=dict(boxstyle = "round", facecolor="white", edgecolor="lightgrey", alpha=1))
-                else:    
-                    plt.text(6.7 + bar_offset, box_height, f"Billigst i dag: {prices_today[index_min_today]} kr./kWh @ {index_min_today}:00", ha="left", va="top", fontsize=10, bbox=dict(boxstyle = "round", facecolor="white", edgecolor="lightgrey", alpha=1))
+            time_dict      = self.tid.get_time()
+            date           = time_dict["date"]
+            time           = time_dict["clock_time"]
+            hour_short     = time_dict["hour_short"]
+            pricedata_date = self.pricedata_date.strftime("%Y-%m-%d %H:%M")
 
-                self.img_filename = f"{date}-T{hour_short}.png"
-                plt.savefig(f"static//{self.img_filename}")        
-
-            if len(self.pricedata) == 1:
-                today = self.pricedata[0] if len(self.pricedata[0]) == 24 else self.pricedata[0][0:24]
-                for i in range(21, 24):
-                    today.append([i, 0])
-                plot(today, None)
-
-            elif len(self.pricedata) == 2:
-                today = self.pricedata[0] if len(self.pricedata[0]) == 24 else self.pricedata[0][0:24]
-                tomorrow = self.pricedata[1] if len(self.pricedata[1]) == 24 else self.pricedata[1][0:24]
-                for i in range(21, 24):
-                    tomorrow.append([i, 0])
-                plot(today, tomorrow)
+            tomorrow = False if charge_prices_tomorrow == None else True
+            hours = [x[0] for x in charge_prices_today]
+            prices_today_elapsed = [x[1] for x in charge_prices_today if x[0] < hour_short]
+            prices_today_elapsed = extend_list_with_zeroes(prices_today_elapsed, prepend=False)
+            prices_today_now = [charge_prices_today[hour_short][1]]
+            prices_today_now = extend_list_with_zeroes(prices_today_now, prepend=True, target_length=hour_short+1)
+            prices_today_now = extend_list_with_zeroes(prices_today_now, prepend=False)
+            prices_today = [x[1] for x in charge_prices_today if x[0] > hour_short]
+            prices_today = extend_list_with_zeroes(prices_today, prepend=True)
+            if tomorrow: prices_tomorrow = [x[1] for x in charge_prices_tomorrow]
             
-            else: raise Exception(f"Something is wrong with the length of the pricedata. Length is {len(self.pricedata)}. Valid lengths are 1 and 2")
-        except Exception as e:
-            print(f"DEBUG: {self.tid.get_time()['now']} ::", ": ### --------- Something went wrong: --------- ###")
-            print(e)
-            print()
-            print("pricedata:", self.pricedata)
-            print("today:", today)
-            print("tomorrow:", tomorrow)
+            if tomorrow: y_vals = [x for x in prices_today_elapsed + prices_today_now + prices_today + prices_tomorrow if x > 0]
+            else:        y_vals = [x for x in prices_today_elapsed + prices_today_now + prices_today if x > 0]
+            y_min = min(y_vals) * 0.95
+            y_max = max(y_vals) * 1.043
+            box_height = y_max * 0.995
+
+            bar_width = 0.4
+            hours = np.arange(len(hours))
+            
+            plt.figure(figsize=(10,8))
+            if tomorrow:
+                bar_offset = -bar_width/2
+                plt.bar(hours - bar_width/2, prices_today_elapsed, bar_width, color="gainsboro")
+                plt.bar(hours - bar_width/2, prices_today_now,     bar_width, color="red",        label="Ladepris nu")
+                plt.bar(hours - bar_width/2, prices_today,         bar_width, color="royalblue",  label="Ladepris i dag")
+                plt.bar(hours + bar_width/2, prices_tomorrow,      bar_width, color="royalblue",  label="Ladepris i morgen", alpha=0.4, hatch="///")
+            else: 
+                bar_offset = 0
+                plt.bar(hours, prices_today_elapsed, bar_width, color="silver")
+                plt.bar(hours, prices_today_now,     bar_width, label="Ladepris nu", color="red")
+                plt.bar(hours, prices_today,         bar_width, label="Ladepris i dag")
+            plt.ylim(bottom=y_min, top=y_max)
+            plt.xlabel("Time hvori opladning påbegyndes")
+            plt.xticks(hours)
+            plt.ylabel("kr./kWh for hele opladningen")
+            plt.title(f"Ladepris for Nortec-stander i N1-serviceområde")
+            plt.legend(loc = "upper right")
+            plt.text(-1.0 + bar_offset, box_height, f"Data hentet: {pricedata_date}\nData plottet: {date} {time}", ha="left", va="top", fontsize=10, bbox=dict(boxstyle = "round", facecolor="white", edgecolor="lightgrey", alpha=1))
+            
+            # Find the lowest price of the day and render in textbox
+            prices_today = [x for x in prices_today_now + prices_today if x > 0]
+            index_min_today = prices_today.index(min(prices_today))
+            if tomorrow:
+                prices_tomorrow = [x for x in prices_tomorrow if x > 0]
+                index_min_tomorrow = prices_tomorrow.index(min(prices_tomorrow))
+                plt.text(6.9 + bar_offset, box_height, f"Billigst i dag:       {prices_today[index_min_today]} kr./kWh @ {index_min_today+hour_short}:00\nBilligst i morgen: {prices_tomorrow[index_min_tomorrow]} kr./kWh @ {index_min_tomorrow}:00", ha="left", va="top", fontsize=10, bbox=dict(boxstyle = "round", facecolor="white", edgecolor="lightgrey", alpha=1))
+            else:    
+                plt.text(6.7 + bar_offset, box_height, f"Billigst i dag: {prices_today[index_min_today]} kr./kWh @ {index_min_today+hour_short}:00", ha="left", va="top", fontsize=10, bbox=dict(boxstyle = "round", facecolor="white", edgecolor="lightgrey", alpha=1))
+
+            self.img_filename = f"{date}-T{hour_short}.png"
+            plt.savefig(f"static//{self.img_filename}")        
+
+        if len(self.pricedata) == 1:
+            today = self.pricedata[0] if len(self.pricedata[0]) == 24 else self.pricedata[0][0:24]
+            for i in range(21, 24):
+                today.append([i, 0])
+            plot(today, None)
+
+        elif len(self.pricedata) == 2:
+            today = self.pricedata[0] if len(self.pricedata[0]) == 24 else self.pricedata[0][0:24]
+            tomorrow = self.pricedata[1] if len(self.pricedata[1]) == 24 else self.pricedata[1][0:24]
+            for i in range(21, 24):
+                tomorrow.append([i, 0])
+            plot(today, tomorrow)
+        
+        else: raise Exception(f"Something is wrong with the length of the pricedata. Length is {len(self.pricedata)}. Valid lengths are 1 and 2")
 
 if __name__ == "__main__":
     Ladepris().check_data_expired(debug=True)

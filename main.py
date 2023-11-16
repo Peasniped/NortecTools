@@ -13,7 +13,6 @@ app = Flask(__name__)
 time = backend.Tid(timezone_offset=tz_offset)
 ladepris = backend.Ladepris(tids_objekt=time)
 
-backend.delete_old_pngs()
 print(f"DEBUG: LeafTools debug messages are {'active' if debug else 'deactivated'}!")
 
 @app.after_request
