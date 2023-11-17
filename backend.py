@@ -226,9 +226,9 @@ class Ladepris:
                 plt.bar(hours + bar_width/2, prices_tomorrow,      bar_width, color="royalblue",  label="Ladepris i morgen", alpha=0.4, hatch="///")
             else: 
                 bar_offset = 0
-                plt.bar(hours, prices_today_elapsed, bar_width, color="silver")
-                plt.bar(hours, prices_today_now,     bar_width, label="Ladepris nu", color="red")
-                plt.bar(hours, prices_today,         bar_width, label="Ladepris i dag")
+                plt.bar(hours, prices_today_elapsed, bar_width, color="gainsboro")
+                plt.bar(hours, prices_today_now,     bar_width, color="red",       label="Ladepris nu")
+                plt.bar(hours, prices_today,         bar_width, color="royalblue", label="Ladepris i dag")
             plt.ylim(bottom=y_min, top=y_max)
             plt.xlabel("Time hvori opladning påbegyndes")
             plt.xticks(hours)
