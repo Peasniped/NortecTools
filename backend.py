@@ -212,27 +212,28 @@ class Ladepris:
             else:        y_vals = [x for x in prices_today_elapsed + prices_today_now + prices_today if x > 0]
             y_min = min(y_vals) * 0.95
             y_max = max(y_vals) * 1.043
-            box_height = y_max * 0.995
+            box_height = y_max * 0.997
 
             bar_width = 0.4
             hours = np.arange(len(hours))
-            
+            plt.rcParams['axes.axisbelow'] = True
             plt.figure(figsize=(10,8))
             if tomorrow:
                 bar_offset = -bar_width/2
-                plt.bar(hours - bar_width/2, prices_today_elapsed, bar_width, color="gainsboro")
+                plt.bar(hours - bar_width/2, prices_today_elapsed, bar_width, color="lightgrey")
                 plt.bar(hours - bar_width/2, prices_today_now,     bar_width, color="red",        label="Ladepris nu")
                 plt.bar(hours - bar_width/2, prices_today,         bar_width, color="royalblue",  label="Ladepris i dag")
                 plt.bar(hours + bar_width/2, prices_tomorrow,      bar_width, color="royalblue",  label="Ladepris i morgen", alpha=0.4, hatch="///")
             else: 
                 bar_offset = 0
-                plt.bar(hours, prices_today_elapsed, bar_width, color="gainsboro")
+                plt.bar(hours, prices_today_elapsed, bar_width, color="lightgrey")
                 plt.bar(hours, prices_today_now,     bar_width, color="red",       label="Ladepris nu")
                 plt.bar(hours, prices_today,         bar_width, color="royalblue", label="Ladepris i dag")
             plt.ylim(bottom=y_min, top=y_max)
             plt.xlabel("Time hvori opladning påbegyndes")
             plt.xticks(hours)
             plt.ylabel("kr./kWh for hele opladningen")
+            plt.grid(axis="y", color="gainsboro")
             plt.title(f"Ladepris for Nortec-stander i N1-serviceområde")
             plt.legend(loc = "upper right")
             plt.text(-1.0 + bar_offset, box_height, f"Data hentet: {pricedata_date}\nData plottet: {date} {time}", ha="left", va="top", fontsize=10, bbox=dict(boxstyle = "round", facecolor="white", edgecolor="lightgrey", alpha=1))
