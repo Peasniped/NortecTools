@@ -121,7 +121,7 @@ class Ladepris:
             tomorrow = now.date() + timedelta(days=1)
             if hour_short >= 13: self.pricedata_expiry = datetime(tomorrow.year, tomorrow.month, tomorrow.day, 13)
             else:                self.pricedata_expiry = datetime(now.year, now.month, now.day, 13)
-            self.hour_marker_expiry = datetime(now.year, now.month, now.day, now.hour + 1)
+            self.hour_marker_expiry = datetime(now.year, now.month, now.day, now.hour) + timedelta(hours=1)
             if debug: print(f"DEBUG: {self.tid.get_time()['now']} ::", "New data fetched, new graph plotted")
 
         # Check if existing hour-marker is expired
@@ -134,7 +134,7 @@ class Ladepris:
             delete_old_pngs()
             self.plot_graph()
 
-            self.hour_marker_expiry = datetime(now.year, now.month, now.day, now.hour + 1)
+            self.hour_marker_expiry = datetime(now.year, now.month, now.day, now.hour) + timedelta(hours=1)
             if debug: print(f"DEBUG: {self.tid.get_time()['now']} ::", "Data not expired, new graph plotted")
         
         elif debug:
@@ -212,7 +212,7 @@ class Ladepris:
             else:        y_vals = [x for x in prices_today_elapsed + prices_today_now + prices_today if x > 0]
             y_min = min(y_vals) * 0.95
             y_max = max(y_vals) * 1.043
-            box_height = y_max * 0.997
+            box_height = y_max * 0.993
 
             bar_width = 0.4
             hours = np.arange(len(hours))
@@ -224,11 +224,14 @@ class Ladepris:
                 plt.bar(hours - bar_width/2, prices_today_now,     bar_width, color="red",        label="Ladepris nu")
                 plt.bar(hours - bar_width/2, prices_today,         bar_width, color="royalblue",  label="Ladepris i dag")
                 plt.bar(hours + bar_width/2, prices_tomorrow,      bar_width, color="royalblue",  label="Ladepris i morgen", alpha=0.4, hatch="///")
+                plt.text(charge_prices_today[hour_short][0]- bar_width/2, charge_prices_today[hour_short][1] * 1.011, charge_prices_today[hour_short][1], ha="center", va="top", color="red", size=8)
             else: 
                 bar_offset = 0
                 plt.bar(hours, prices_today_elapsed, bar_width, color="lightgrey")
                 plt.bar(hours, prices_today_now,     bar_width, color="red",       label="Ladepris nu")
                 plt.bar(hours, prices_today,         bar_width, color="royalblue", label="Ladepris i dag")
+                plt.text(charge_prices_today[hour_short][0], charge_prices_today[hour_short][1] * 1.011, charge_prices_today[hour_short][1], ha="center", va="top", color="red", size=8)
+
             plt.ylim(bottom=y_min, top=y_max)
             plt.xlabel("Time hvori opladning påbegyndes")
             plt.xticks(hours)
