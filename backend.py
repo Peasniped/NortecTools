@@ -4,10 +4,16 @@ import matplotlib.pyplot as plt
 import numpy as np
 
 def delete_old_pngs() -> None:
+    """ 
+    Deletes all files in the static-folder in order to save space on the webserver.
+    Filenames can be added to the list no_delete in order for the file to not be deleted.
+    """
+    no_delete = ["favicon.ico"] # files in the static-folder that should not be deleted
     try:
         files = os.listdir("static")
         for file in files:
-            os.remove(f"static//{file}")
+            if not file in no_delete:
+                os.remove(f"static//{file}")
     except Exception as e:
         print("Exception using delete_old_pngs():", e)
         pass
@@ -230,7 +236,7 @@ class Ladepris:
                 plt.bar(hours, prices_today_elapsed, bar_width, color="lightgrey")
                 plt.bar(hours, prices_today_now,     bar_width, color="red",       label="Ladepris nu")
                 plt.bar(hours, prices_today,         bar_width, color="royalblue", label="Ladepris i dag")
-                plt.text(charge_prices_today[hour_short][0], charge_prices_today[hour_short][1] * 1.011, charge_prices_today[hour_short][1], ha="center", va="top", color="red", size=8)
+                plt.text(charge_prices_today[hour_short][0],              charge_prices_today[hour_short][1] * 1.011, charge_prices_today[hour_short][1], ha="center", va="top", color="red", size=8)
 
             plt.ylim(bottom=y_min, top=y_max)
             plt.xlabel("Time hvori opladning påbegyndes")

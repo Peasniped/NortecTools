@@ -5,4 +5,4 @@ RUN pip install -r requirements.txt
 RUN apt update 
 RUN apt install tzdata -y
 COPY . .
-CMD python main.py
+CMD python -u main.py
