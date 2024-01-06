@@ -1,7 +1,7 @@
 # Welcome to NortecTools
 This is planned to be a simple web-application with various tools used with my charging provider Nortec.
 
-The web-app is currently running for my personal use, and can be demoed at https://ladepris.znk.dk/
+The web-app is currently running for my personal use, and can be demoed at https://ladepris.znk.dk/ <br>
 The text is in danish, and the price is in kr./kWh
 
 ![image](https://github.com/Peasniped/NortecTools/assets/112928357/d2246118-73e3-4104-a584-41291c9b0e9a)
