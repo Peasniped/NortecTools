@@ -5,13 +5,14 @@ try:
     tz_offset = int(os.environ['TZ_OFFSET'])
     debug     = bool(os.environ['DEBUG_MSG'])
 except:
+    print("ENV: Setting of environment variables failed.\n     Default values have been set: tz_offset = 0, debug = True")
     tz_offset = 0
     debug     = True
 
 app = Flask(__name__)
 
 time = backend.Tid(timezone_offset=tz_offset)
-ladepris = backend.Ladepris(tids_objekt=time)
+ladepris = backend.Ladepris(time_objekt=time)
 
 print(f"DEBUG: LeafTools debug messages are {'active' if debug else 'deactivated'}!")
 
